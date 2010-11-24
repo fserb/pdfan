@@ -37,6 +37,7 @@ def dump_page_ppm(pdf, p):
   ppmfile = "dump-%0*d.ppm" % (np, p+1)
   return Image.open(ppmfile)
 
+
 def rescale_rect(page, rect):
   height = float(page.mediaBox[3] - page.mediaBox[1])
   return [ int(math.floor(float(rect[0])*page.aspect)),
@@ -44,15 +45,8 @@ def rescale_rect(page, rect):
            int(math.ceil(float(rect[2])*page.aspect)),
            int(math.ceil(height - float(rect[1]))*page.aspect) ]
 
-def main(argv):
-  if len(argv) != 5:
-    print "Usage: %s [file.pdf] [output.html] [title] [author]"
-    return 1
-  pdf_file = os.path.abspath(argv[1])
-  output_file = os.path.abspath(argv[2])
-  title = argv[3]
-  author = argv[4]
 
+def make_annotation(pdf_file, output_file, title, author):
   cwd = os.getcwd()
   workdir = tempfile.mkdtemp()
   os.chdir(workdir)
@@ -100,6 +94,17 @@ def main(argv):
   finally:
     os.chdir(cwd)
     shutil.rmtree(workdir)
+
+
+def main(argv):
+  if len(argv) != 5:
+    print "Usage: %s [file.pdf] [output.html] [title] [author]" % argv[0]
+    return 1
+  pdf_file = os.path.abspath(argv[1])
+  output_file = os.path.abspath(argv[2])
+  title = argv[3]
+  author = argv[4]
+  make_annotation(pdf_file, output_file, title, author)
 
 HTML_HEADER_BEGIN = """<!doctype html>
 <html><head>
