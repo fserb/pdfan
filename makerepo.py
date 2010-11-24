@@ -20,7 +20,7 @@ def main(argv):
       continue
     author, title = l.split(' - ', 1)
     html_file = os.path.join(htmldir, basename + ".html")
-    print title, "-", author
+    print author, "-", title
     pdfan.make_annotation(pdf_file, html_file, title.strip(), author.strip())
 
 
