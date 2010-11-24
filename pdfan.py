@@ -45,11 +45,13 @@ def rescale_rect(page, rect):
            int(math.ceil(height - float(rect[1]))*page.aspect) ]
 
 def main(argv):
-  if len(argv) != 3:
-    print "Usage: %s [file.pdf] [output.html]"
+  if len(argv) != 5:
+    print "Usage: %s [file.pdf] [output.html] [title] [author]"
     return 1
   pdf_file = os.path.abspath(argv[1])
   output_file = os.path.abspath(argv[2])
+  title = argv[3]
+  author = argv[4]
 
   cwd = os.getcwd()
   workdir = tempfile.mkdtemp()
@@ -57,7 +59,8 @@ def main(argv):
   try:
     pdf = pyPdf.PdfFileReader(file(pdf_file, "rb"))
     out = file(output_file, 'wt')
-    out.write(HTML_HEADER)
+    out.write(HTML_HEADER_BEGIN)
+    out.write(HTML_HEADER_END.format(title=title,author=author))
 
     for i in range(pdf.numPages):
 
@@ -98,13 +101,27 @@ def main(argv):
     os.chdir(cwd)
     shutil.rmtree(workdir)
 
-HTML_HEADER = """<!doctype html>
+HTML_HEADER_BEGIN = """<!doctype html>
 <html><head>
-<title>PDF Annotations dump</title>
 <style>
 body {
   font-family: verdana;
-  background-color: #EEE;
+  background-color: #F0f0f0;
+}
+
+#header {
+  margin: 20px 0 50px 100px;
+  width: 600px;
+}
+
+#header h1 {
+  font-size: 22px;
+  margin: 0;
+} 
+
+#header h3 {
+  font-size: 16px;
+  margin: 10px 0 0 0;
 }
 
 .page {
@@ -118,7 +135,7 @@ body {
   margin: 0;
   padding: 2px;
   background-color: hsl(0,75%,50%);
-  background: -webkit-gradient(linear, left top, right top, color-stop(0%,#EEE),color-stop(20%,hsl(0,75%, 30%)), color-stop(80%,hsl(0,75%,40%)),color-stop(100%,#EEE));
+  background: -webkit-gradient(linear, left top, right top, color-stop(0%,#f0f0f0),color-stop(20%,hsl(0,75%, 30%)), color-stop(80%,hsl(0,75%,40%)),color-stop(100%,#f0f0f0));
 }
 
 .page h2 p {
@@ -144,10 +161,17 @@ body {
   -moz-box-shadow: 3px 2px 4px #000;
   -webkit-box-shadow: 2px 2px 5px #000;
 }
+</style>"""
 
-</style>
+HTML_HEADER_END = """
+<title>{title} - {author} [pdfan]</title>
 </head>
 <body>
+
+<div id="header">
+<h1>{title}</h1>
+<h3>{author}</h3>
+</div>
 """
 
 HTML_FOOTER = """
