@@ -67,8 +67,9 @@ def main(argv):
       if not '/Annots' in page:
         continue
 
+
       dump = None
-      for io in page['/Annots']:
+      for io in sorted(page['/Annots'], key=lambda io: -pdf.getObject(io)['/Rect'][3]):
         o = pdf.getObject(io)
         subtype = o['/Subtype']
 
@@ -76,8 +77,8 @@ def main(argv):
           continue
 
         if dump is None:
-          out.write(HTML_PAGE_BEGIN.format(page=str(i+1)))
           dump = dump_page_ppm(pdf, i)
+          out.write(HTML_PAGE_BEGIN.format(page=str(i+1)))
 
         if subtype == '/Highlight':
           f = StringIO.StringIO()
@@ -88,7 +89,7 @@ def main(argv):
         else:
           print subtype
 
-      if dump is not None:
+      if dump:
         out.write(HTML_PAGE_END)
     
     out.write(HTML_FOOTER)
@@ -97,15 +98,51 @@ def main(argv):
     os.chdir(cwd)
     shutil.rmtree(workdir)
 
-HTML_HEADER = """
-<!doctype html>
+HTML_HEADER = """<!doctype html>
 <html><head>
 <title>PDF Annotations dump</title>
 <style>
+body {
+  font-family: verdana;
+  background-color: #EEE;
+}
+
+.page {
+  margin: 0 0 15px 0;
+}
+
+.page h2 {
+  font-size: 18px;
+  float: left;
+  color: #FFF;
+  margin: 0;
+  padding: 2px;
+  background-color: hsl(0,75%,50%);
+  background: -webkit-gradient(linear, left top, right top, color-stop(0%,#EEE),color-stop(20%,hsl(0,75%, 30%)), color-stop(80%,hsl(0,75%,40%)),color-stop(100%,#EEE));
+}
+
+.page h2 p {
+  margin: 0;
+  padding: 0;
+  border: 1px solid #EEE;
+  padding: 2px 10px;
+  width: 50px;
+  text-align: right;
+}
+
+.an {
+  margin: 0 0 5px 100px;
+  
+}
+
 .an img {
-  padding: 5px;
+  padding: 10px;
   border: 10px;
-  border: 1px solid #ccc;
+  background-color: #FFF;
+  border: 1px solid #000;
+  box-shadow: 2px 2px 2px #000;
+  -moz-box-shadow: 3px 2px 4px #000;
+  -webkit-box-shadow: 2px 2px 5px #000;
 }
 
 </style>
@@ -118,7 +155,7 @@ HTML_FOOTER = """
 """
 
 HTML_PAGE_BEGIN = """
-<div class="page"><h2>{page}</h2>
+<div class="page"><a name="{page}"><h2><p>{page}</p></h2></a>
 """
 
 HTML_PAGE_END = """
