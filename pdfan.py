@@ -21,14 +21,17 @@ TARGET_WIDTH = 600
 
 def dump_page_ppm(pdf, p):
   page = pdf.getPage(p)
-  width = int(round(page.aspect*float(page.mediaBox[2] - page.mediaBox[0])))
-  height = int(round(page.aspect*float(page.mediaBox[3] - page.mediaBox[1])))
+
+  width = int(round(page.aspect*float(page.cropBox[2] - page.cropBox[0])))
+  height = int(round(page.aspect*float(page.cropBox[3] - page.cropBox[1])))
   
   pdftoppm = Popen(["pdftoppm", 
                     "-f", str(p+1),
                     "-l", str(p+1),
                     "-scale-to-x", str(width),
                     "-scale-to-y", str(height),
+                    "-cropbox",
+                    "-q",
                     pdf.stream.name,
                     "dump"])
   pdftoppm.communicate()
@@ -39,12 +42,43 @@ def dump_page_ppm(pdf, p):
 
 
 def rescale_rect(page, rect):
-  height = float(page.mediaBox[3] - page.mediaBox[1])
-  return [ int(math.floor(float(rect[0])*page.aspect)),
-           int(math.floor(height - float(rect[3]))*page.aspect),
-           int(math.ceil(float(rect[2])*page.aspect)),
-           int(math.ceil(height - float(rect[1]))*page.aspect) ]
+  # Rescale to mediaBox, then back to cropBox.
 
+  box = [ float(x) for x in page.cropBox ]
+  r = [ float(x) for x in rect ]
+
+  h = box[3] - box[1]
+  w = box[2] - box[0]
+  asp = page.aspect
+
+  r = [ r[0] - box[0],
+        r[1] - box[1],
+        r[2] - box[0],
+        r[3] - box[1] ]
+
+  final = [ r[0]*asp,
+            (h - r[3])*asp,
+            r[2]*asp,
+            (h - r[1])*asp ]
+
+  final = [ int(math.floor(final[0])),
+            int(math.floor(final[1])),
+            int(math.ceil(final[2])),
+            int(math.ceil(final[3])) ]
+
+  return final
+
+def has_annotation(pdf_file):
+  pdf = pyPdf.PdfFileReader(file(pdf_file, "rb"))
+  for i in range(pdf.numPages):
+    page = pdf.getPage(i)
+    if not '/Annots' in page:
+      continue
+    for io in page['/Annots']:
+      o = pdf.getObject(io)
+      if o['/Subtype'] in ['/Highlight']:
+        return True
+  return False
 
 def make_annotation(pdf_file, output_file, title, author):
   cwd = os.getcwd()
@@ -59,7 +93,7 @@ def make_annotation(pdf_file, output_file, title, author):
     for i in range(pdf.numPages):
 
       page = pdf.getPage(i)
-      width = float(page.mediaBox[2] - page.mediaBox[0])
+      width = float(page.cropBox[2] - page.cropBox[0])
       page.aspect = 1.25*float(TARGET_WIDTH)/width
       if not '/Annots' in page:
         continue
@@ -79,7 +113,6 @@ def make_annotation(pdf_file, output_file, title, author):
 
         if subtype == '/Highlight':
           f = StringIO.StringIO()
-          r = rescale_rect(page, o['/Rect'])
           dump.crop(rescale_rect(page, o['/Rect'])).save(f, "PNG")
           high = base64.b64encode(f.getvalue()).strip()
           out.write(HTML_IMG_ANNOTATION.format(content=high))
